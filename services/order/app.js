@@ -4,10 +4,10 @@ const path = require('path')
 require('dotenv').config({ path: path.resolve(__dirname, '.env') })
 
 function isValidOrder(orderData) {
-    if(!orderData.products  || orderData.products.length <= 0) { //SEM PRODUTO
+    if (!orderData.products || orderData.products.length <= 0) { //SEM PRODUTO
         return false
     }
-    if(!orderData.cpf || !orderData.name) { //SEM DADOS PESSOAIS
+    if (!orderData.cpf || !orderData.name) { //SEM DADOS PESSOAIS
         return false
     }
     return true
@@ -16,8 +16,8 @@ function isValidOrder(orderData) {
 async function processMessage(msg) {
     const orderData = JSON.parse(msg.content)
     try {
-        if(isValidOrder(orderData)) {
-            await (await RabbitMQService.getInstance()).send('contact', { 
+        if (isValidOrder(orderData)) {
+            await (await RabbitMQService.getInstance()).send('contact', {
                 "clientFullName": orderData.name,
                 "to": orderData.email,
                 "subject": "Pedido Aprovado",
@@ -25,9 +25,10 @@ async function processMessage(msg) {
             })
 
             await (await RabbitMQService.getInstance()).send('shipping', orderData)
+            await (await RabbitMQService.getInstance()).send('report', orderData)
             console.log(`✔ PEDIDO APROVADO`)
         } else {
-            await (await RabbitMQService.getInstance()).send('contact', { 
+            await (await RabbitMQService.getInstance()).send('contact', {
                 "clientFullName": orderData.name,
                 "to": orderData.email,
                 "subject": "Pedido Reprovado",
@@ -42,7 +43,7 @@ async function processMessage(msg) {
 
 async function consume() {
     console.log(`INSCRITO COM SUCESSO NA FILA: ${process.env.RABBITMQ_QUEUE_NAME}`)
-    await (await RabbitMQService.getInstance()).consume(process.env.RABBITMQ_QUEUE_NAME, (msg) => {processMessage(msg)})
-} 
+    await (await RabbitMQService.getInstance()).consume(process.env.RABBITMQ_QUEUE_NAME, (msg) => { processMessage(msg) })
+}
 
 consume()
